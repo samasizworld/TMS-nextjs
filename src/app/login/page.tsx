@@ -1,30 +1,65 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
-
-
+import GoogleLogin from 'react-google-login';
+import { gapi } from 'gapi-script';
+import { toast } from 'react-toastify';
 const Login = () => {
     const [email, useEmail] = useState('');
-    const [password, usePassword] = useState('');
-
+    const [otp, setOTP] = useState('');
+    // paste your client id here
+    const clientId = 'iwdscock';
     const router = useRouter();
-    const handleSubmit = async (e: any) => {
-        e.preventDefault();
-        const data = { Username: email };
+    
+    if (sessionStorage.getItem('token')) {
+        router.push('/tasks')
+    }
+
+    useEffect(() => {
+        gapi.load("client:auth2", () => {
+            gapi.auth2.init({ clientId: clientId })
+        })
+    }, [])
+
+    const responseGoogle = async (response: any) => {
+        console.log(response?.profileObj?.email)
+        const data = { Username: response.profileObj.email || '', OTPCode: '' };
         try {
             const resp = await axios.post('http://localhost:6060/generateToken', data);
             sessionStorage.setItem('token', resp.data.AuthenticationKey)
+            sessionStorage.setItem('isadmin', resp.data.IsAdmin)
             // navigate to task page
             router.push('/tasks')
         } catch (error) {
+            sessionStorage.clear();
             console.error(error)
+            toast.error("Invalid credentials");
+
+        }
+        // console.log(response.accessToken)
+        // Handle the response from Google OAuth
+    };
+
+    const handleSubmit = async (e: any) => {
+        e.preventDefault();
+        const data = { Username: email, OTPCode: otp };
+        try {
+            const resp = await axios.post('http://localhost:6060/generateToken', data);
+            sessionStorage.setItem('token', resp.data.AuthenticationKey)
+            sessionStorage.setItem('isadmin', resp.data.IsAdmin)
+            // navigate to task page
+            router.push('/tasks')
+        } catch (error) {
+            sessionStorage.clear();
+            console.error(error)
+            toast.error("Invalid credentials");
         }
 
     }
     const handleChange = (e: any) => {
-        if (e.target.name == 'password') {
-            usePassword(e.target.value)
+        if (e.target.name == 'otp') {
+            setOTP(e.target.value)
         } else if (e.target.name == 'email') {
             useEmail(e.target.value);
 
@@ -39,9 +74,19 @@ const Login = () => {
                 <form onSubmit={handleSubmit} className={'p-[3rem] flex flex-col justify-center bg-gray-300 space-y-5 shadow-lg rounded-xl'}>
                     <label className={'font-bold'} htmlFor="name">Enter emailaddress</label>
                     <input className={'p-2 outline-none border focus:border-yellow-600 rounded-sm'} type="email" id="email" name="email" value={email} onChange={handleChange} placeholder='Emailaddress' required />
-                    <label className={'font-bold'} htmlFor="password">Enter Password</label>
-                    <input className={'p-2 outline-none border focus:border-yellow-600 rounded-sm'} type="password" id="password" name="email" value={password} onChange={handleChange} placeholder='Password' />
+                    <label className={'font-bold'} htmlFor="otp">Enter OTP</label>
+                    <input className={'p-2 outline-none border focus:border-yellow-600 rounded-sm'} type="text" id="otp" name="otp" value={otp} onChange={handleChange} placeholder='OTP' required />
                     <button className={' m-5 p-2 rounded-full border bg-blue-400  hover:bg-yellow-600'}>Login</button>
+                    <p className={'text-center'}>OR</p>
+                    <GoogleLogin
+                        // className={'rounded-full border bg-blue-400  hover:bg-yellow-600'}
+                        clientId={clientId}
+                        buttonText="Login with Google"
+                        redirectUri={'http://localhost:3000/auth/cb'}
+                        onSuccess={responseGoogle}
+                        // onFailure={onFailure} // Optional
+                        cookiePolicy={'single_host_origin'}
+                    />
                 </form>
             </div>
         </>

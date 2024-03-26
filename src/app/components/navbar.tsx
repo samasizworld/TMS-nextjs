@@ -7,6 +7,7 @@ export const SearchContext = createContext('');
 
 const Navbar = ({ children }: any) => {
     const currentPath = usePathname();
+
     const [search, setSearch] = useState('')
     const router = useRouter()
     const handleSubmit = async (e: any) => {
@@ -22,6 +23,9 @@ const Navbar = ({ children }: any) => {
         sessionStorage.clear();
         router.push('/login')
     }
+    // console.log(currentPath)
+    // const isadmin: any = sessionStorage.getItem('isadmin');
+    // console.log(isadmin)
 
     return (
         <SearchContext.Provider value={search}>
@@ -38,6 +42,10 @@ const Navbar = ({ children }: any) => {
                             <button type='submit' className={'hover:text-yellow-500 mr-10 font-bold'}>Search</button></form>
 
                     </div>
+                    {currentPath == '/tasks' ? (<><div className={'flex w-1/4 justify-end h-20 items-center'}>
+                        <button  className={'px-2 w-fit rounded-full border bg-blue-400  hover:bg-yellow-600 hover:cursor-pointer text-center'}><Link href={`/tasks/0`}>Add New</Link></button>
+                    </div></>) : (<></>)}
+
                     <div className={'flex w-1/4 justify-end h-20 items-center'}>
                         <button className={'hover:text-yellow-500 mr-10 font-bold'} onClick={handleLogout}>Logout</button>
                     </div>

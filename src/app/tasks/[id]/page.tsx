@@ -2,26 +2,28 @@
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation';
-import MultiSelectDropdown from '@/components/dropdown';
+import MultiSelectDropdown from '@/app/components/dropdown';
 // import { TaskStatus } from '@/enum/taskEnums';
 // import MyCalendar from '@/components/calender';
-import { TaskStatus } from '@/enum/taskEnums';
+import { TaskStatus } from '@/app/enum/taskEnums';
+import WYSIWYG from '@/app/components/wyiswyg';
+import { toast } from 'react-toastify';
 
 const TaskDetail = ({ params }: { params: { id: string } }) => {
+    const isAdmin = sessionStorage.getItem('isadmin');
     const [title, setTitle]: any = useState('')
     const [date, setDate]: any = useState(new Date())
     const [description, setDescription]: any = useState('')
     let [users, setUsers]: any = useState([]);
     const [assignedUsers, setAssignedUser]: any = useState([]);
-    const [existingUsers, setExistingUser]: any = useState([]);
-
     const [taskStatus, setTaskStatus]: any = useState([])
     const [rows, setRows]: any = useState([]);
     const [file, setFile]: any = useState('')
 
     const addRow = () => {
+        console.log('Adding Rows')
         setRows((rows: any) => {
-            return [...rows, <div className={'flex justify-between'} key={assignedUsers.length}>
+            const updatedRow = [...rows, <div className={'flex justify-between'} key={rows.length}>
                 <div className="mb-4">
                     <label htmlFor="status" className="block text-gray-700 font-bold mb-2">Task Status:</label>
                     <MultiSelectDropdown
@@ -30,8 +32,8 @@ const TaskDetail = ({ params }: { params: { id: string } }) => {
                             { value: 'inprogress', label: 'In Progress' },
                             { value: 'done', label: 'Done' }
                         ]}
-                        value={taskStatus[assignedUsers.length]}
-                        onChange={(status: any) => handleTaskStatusChange(status, assignedUsers.length)}
+                        value={taskStatus[rows.length]}
+                        onChange={(status: any) => handleTaskStatusChange(status, rows.length)}
                         isMulti={false}
                     />
                 </div>
@@ -40,12 +42,23 @@ const TaskDetail = ({ params }: { params: { id: string } }) => {
                     <label htmlFor="users" className="block text-gray-700 font-bold mb-2">Select Assignees</label>
                     <MultiSelectDropdown
                         options={users}
-                        value={assignedUsers[assignedUsers.length]}
-                        onChange={(u: any) => handleUserSelectChange(u, assignedUsers.length)}
+                        value={assignedUsers[rows.length]}
+                        onChange={(u: any) => handleUserSelectChange(u, rows.length)}
                         isMulti={false}
                     />
                 </div>
+                <div className="mb-6">
+                    <input type="button" onClick={deleteRows.bind(null, rows.length)} className="bg-blue-500 text-white px-4 py-2 mt-4" value='Delete' />
+                </div>
             </div>]
+            // taskStatus.push({ value: '', label: '', index: rows.length })
+            // assignedUsers.push({ label: '', value: '', index: rows.length })
+
+            // setTaskStatus(taskStatus);
+            // setAssignedUser(assignedUsers)
+            // console.log('After row is added', assignedUsers)
+            // console.log('Row after added', updatedRow);
+            return updatedRow;
         });
 
 
@@ -60,14 +73,19 @@ const TaskDetail = ({ params }: { params: { id: string } }) => {
         }
     }
 
+    const handleEditor = (desc: any) => {
+        console.log(desc)
+        setDescription(desc)
+    }
+
     const handleUserSelectChange = (assignedUser: any, index: number) => {
         setAssignedUser((user: any) => {
             // console.log(user);
             const updatedUser = [...user]
-            updatedUser[index] = { ...assignedUser, index: index }
+            updatedUser[index] = { ...assignedUser, index }
+            // console.log(updatedUser)
             return updatedUser
         });
-
 
     };
 
@@ -83,7 +101,6 @@ const TaskDetail = ({ params }: { params: { id: string } }) => {
     const handleSubmit = (e: any) => {
         e.preventDefault();
         console.log('Submitted')
-
         const taskObject = {
             Title: title,
             Description: description,
@@ -97,16 +114,35 @@ const TaskDetail = ({ params }: { params: { id: string } }) => {
         }
         console.log(taskObject)
         const authToken = sessionStorage.getItem('token');
+        if (params.id != '0') {
+            // update the task
+            axios.put(`http://localhost:6060/tasks/${params.id}`, taskObject, { headers: { 'Authorization': `Bearer ${authToken}` } }).
+                then((response: any) => {
+                    // alert('Record saved')
+                    console.log(response)
+                    toast.success("Record saved");
+                }
+                ).catch(error => {
+                    console.error(error)
+                    sessionStorage.clear();
+                    router.push('/login')
+                })
 
-        // update the task and assign the users
-        axios.put(`http://localhost:6060/tasks/${params.id}`, taskObject, { headers: { 'Authorization': `Bearer ${authToken}` } }).
-            then((response: any) => {
-                alert('Record saved')
-            }
-            ).catch(error => {
-                console.error(error)
-                router.push('/login')
-            })
+        } else {
+            // create new task
+            axios.post(`http://localhost:6060/tasks`, taskObject, { headers: { 'Authorization': `Bearer ${authToken}` } }).
+                then((response: any) => {
+                    console.log(response)
+                    router.push(`/tasks/${response.data.guid}`)
+                    toast.success("Record saved");
+                }
+                ).catch(error => {
+                    console.error(error)
+                    sessionStorage.clear();
+                    router.push('/login')
+                })
+
+        }
 
     }
 
@@ -114,22 +150,69 @@ const TaskDetail = ({ params }: { params: { id: string } }) => {
     useEffect(() => {
         console.log('Use Effect of Task Detail page')
         const authToken = sessionStorage.getItem('token');
-        axios.get(`http://localhost:6060/tasks/${params.id}`, { headers: { 'Authorization': `Bearer ${authToken}` } }).
-            then((data: any) => {
-                setTitle(data.data.Title)
-                setDescription(data.data.Description)
-                setDate(data.data.CreationDate)
-                setExistingUser(data.data.AssignedUsers)
-                data.data.AssignedUsers
-                    .forEach((d: any, idx: number) => {
-                        handleTaskStatusChange({ value: d.TaskStatus, label: TaskStatus[d.TaskStatus as keyof typeof TaskStatus] }, idx)
-                        handleUserSelectChange({ label: d.Emailaddress, value: d.UserId }, idx)
-                    })
-            }
-            ).catch(error => {
-                console.error(error)
-                router.push('/login')
-            })
+
+        // run this when update is done
+        if (params.id != '0') {
+            axios.get(`http://localhost:6060/tasks/${params.id}`, { headers: { 'Authorization': `Bearer ${authToken}` } }).
+                then((data: any) => {
+                    setTitle(data.data.Title)
+                    setDescription(data.data.Description)
+                    setDate(data.data.CreationDate)
+                    console.log(data.data)
+                    let rowDropDown: any = [];
+                    let status: any = [];
+                    let assignedUsersPerTask: any = [];
+                    data.data.AssignedUsers
+                        .forEach((d: any, idx: number) => {
+                            status.push({ value: d.TaskStatus, label: TaskStatus[d.TaskStatus as keyof typeof TaskStatus], index: idx })
+                            assignedUsersPerTask.push({ label: d.Emailaddress, value: d.UserId, index: idx })
+                            // handleTaskStatusChange({ value: d.TaskStatus, label: TaskStatus[d.TaskStatus as keyof typeof TaskStatus] }, idx)
+                            // handleUserSelectChange({ label: d.Emailaddress, value: d.UserId }, idx)
+                            rowDropDown.push(<div className={'flex justify-between'} key={idx}>
+                                <div className="mb-4">
+                                    <label htmlFor="status" className="block text-gray-700 font-bold mb-2">Task Status:</label>
+                                    <MultiSelectDropdown
+                                        options={[
+                                            { value: 'todo', label: 'To Do' },
+                                            { value: 'inprogress', label: 'In Progress' },
+                                            { value: 'done', label: 'Done' }
+                                        ]}
+                                        value={status[idx]}
+                                        onChange={(status: any) => handleTaskStatusChange(status, idx)}
+                                        isMulti={false}
+                                    />
+                                </div>
+
+                                <div className="mb-4 w-1/2">
+                                    <label htmlFor="users" className="block text-gray-700 font-bold mb-2">Select Assignees</label>
+                                    <MultiSelectDropdown
+                                        options={users}
+                                        value={assignedUsersPerTask[idx]}
+                                        onChange={(u: any) => handleUserSelectChange(u, idx)}
+                                        isMulti={false}
+                                    />
+                                </div>
+                                <div className="mb-6">
+                                    <input type="button" onClick={deleteRows.bind(null, idx)} className="bg-blue-500 text-white px-4 py-2 mt-4" value='Delete' />
+                                </div>
+                            </div>)
+
+                        })
+                    // console.log('Inside',assignedUsersPerTask)
+                    setTaskStatus(status)
+                    setAssignedUser(assignedUsersPerTask)
+                    setRows(rowDropDown);
+                    // console.log(rowDropDown)
+                    // console.log('Assigned Users', assignedUsers)
+
+                }
+                ).catch(error => {
+                    console.error(error)
+                    sessionStorage.clear();
+                    router.push('/login')
+                })
+        }
+
         // user list
         axios.get(`http://localhost:6060/users?pageSize=0`, { headers: { 'Authorization': `Bearer ${authToken}` } }).
             then((data: any) => {
@@ -137,18 +220,56 @@ const TaskDetail = ({ params }: { params: { id: string } }) => {
             }
             ).catch(error => {
                 console.error(error)
+                sessionStorage.clear();
                 router.push('/login')
             })
     }, [])
+    // console.log('AssignedUsers', assignedUsers)
+    // console.log('Rows', rows)
+
+    const deleteRows = (index: any) => {
+        console.log('Deleted Items at index ', index)
+        // console.log(rows)
+        toast.success("Rows Deleted");
+
+        setRows((prevRows: any[]) => {
+            // console.log('prev Rows', prevRows)
+            const idx = prevRows.findIndex((pr: any) => Number(pr.key) == index)
+            // console.log(idx)
+            prevRows.splice(idx, 1)
+            // console.log('Rows After deleted ', prevRows);
+            return prevRows
+        });
+        // console.log('AU',assignedUsers)
+        setAssignedUser((prevUsers: any) => {
+            // console.log('Prev User', prevUsers)
+            const updatedUsers = [...prevUsers];
+            const idx = updatedUsers.findIndex((pr: any) => pr.index == index)
+            // console.log(idx)
+            updatedUsers.splice(idx, 1)
+            // console.log('Rows after updated', updatedUsers)
+            return updatedUsers;
+        });
+        setTaskStatus((prevStatus: any) => {
+            const updatedStatus = [...prevStatus];
+            const idx = updatedStatus.findIndex((pr: any) => pr.index == index)
+            updatedStatus.splice(idx, 1);
+            return updatedStatus;
+        });
+    }
+
+
+
 
     const handleFileChange = (e: any) => {
         console.log(e.target.files?.[0])
 
     }
 
-    const handleDate = (date: any) => {
-        setDate(date);
-    }
+    // const handleDate = (date: any) => {
+    //     setDate(date);
+    // }
+    // console.log('Outside',rows)
     // not best way to do
     users = users.filter((u: any) => !assignedUsers.map((au: any) => au.value).includes(u.value))
 
@@ -160,16 +281,20 @@ const TaskDetail = ({ params }: { params: { id: string } }) => {
                     <input type="text" onChange={handleChange} value={title} id="title" name="title" className={"shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"} />
                 </div>
 
-                <div className="mb-4">
+                {/* <div className="mb-4">
                     <label htmlFor="description" className="block text-gray-700 font-bold mb-2">Description:</label>
                     <textarea id="description" onChange={handleChange} name="description" value={description} rows={5} className={"shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"}></textarea>
-                </div>
-
+                </div> */}
 
                 <div className="mb-4">
+                    <label htmlFor="description" className="block text-gray-700 font-bold mb-2">Description:</label>
+                    <WYSIWYG content={description} handleChange={handleEditor} />
+                </div>
+
+                {/* <div className="mb-4">
                     <label htmlFor="file" className="block text-gray-700 font-bold mb-2">Upload File:</label>
                     <input type="file" id="file" name="file" onChange={handleFileChange} className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
-                </div>
+                </div> */}
 
 
                 {/* <div className={"mb-4"}>
@@ -177,41 +302,14 @@ const TaskDetail = ({ params }: { params: { id: string } }) => {
 
                     <MyCalendar handleDate={handleDate} date={date} />
                 </div> */}
-                
-                <div className="mb-6">
+
+                {isAdmin == 'true' ? (<div className="mb-6">
                     <label htmlFor="assignee" className="block text-gray-700 font-bold mb-2">Assignee Section</label>
                     <input type="button" onClick={addRow} className="bg-blue-500 text-white px-4 py-2 mt-4" value='Add more Assignee?' />
-                </div>
-                {existingUsers.map((user: any, index: number) => (
-                    <div key={index} className={'flex justify-between'}>
-                        <div className="mb-4">
-                            <label htmlFor="status" className="block text-gray-700 font-bold mb-2">Task Status:</label>
-                            <MultiSelectDropdown
-                                options={[
-                                    { value: 'todo', label: 'To Do' },
-                                    { value: 'inprogress', label: 'In Progress' },
-                                    { value: 'done', label: 'Done' }
-                                ]}
-                                value={taskStatus[index]}
-                                onChange={(status: any) => handleTaskStatusChange(status, index)}
-                                isMulti={false}
-                            />
-                        </div>
+                </div>) : <></>}
 
-                        <div className="mb-4 w-1/2">
-                            <label htmlFor="users" className="block text-gray-700 font-bold mb-2">Select Assignees</label>
-                            <MultiSelectDropdown
-                                options={users}
-                                value={assignedUsers[index]}
-                                onChange={(user: any) => handleUserSelectChange(user, index)}
-                                isMulti={false}
-                            />
+                {rows.map((row: any, idx: number) => <div key={idx}>{row}</div>)}
 
-                        </div>
-                    </div>
-                ))}
-                {rows.map((r: any, idx: number) => { return (<div key={idx}>{r}</div>) })}
-                {/* {rows} */}
                 <div className="mb-6">
                     <button type="submit" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">Save</button>
                 </div>
