@@ -11,7 +11,7 @@ const Login = () => {
     // paste your client id here
     const clientId = 'iwdscock';
     const router = useRouter();
-    
+
     if (sessionStorage.getItem('token')) {
         router.push('/tasks')
     }
@@ -49,7 +49,12 @@ const Login = () => {
             sessionStorage.setItem('token', resp.data.AuthenticationKey)
             sessionStorage.setItem('isadmin', resp.data.IsAdmin)
             // navigate to task page
-            router.push('/tasks')
+            if (resp.data.IsAdmin == true) {
+                router.push('/')
+            } else {
+                router.push('/tasks')
+            }
+
         } catch (error) {
             sessionStorage.clear();
             console.error(error)

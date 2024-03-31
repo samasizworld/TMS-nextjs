@@ -43,7 +43,11 @@ const Navbar = ({ children }: any) => {
 
                     </div>
                     {currentPath == '/tasks' ? (<><div className={'flex w-1/4 justify-end h-20 items-center'}>
-                        <button  className={'px-2 w-fit rounded-full border bg-blue-400  hover:bg-yellow-600 hover:cursor-pointer text-center'}><Link href={`/tasks/0`}>Add New</Link></button>
+                        <button className={'px-2 w-fit rounded-full border bg-blue-400  hover:bg-yellow-600 hover:cursor-pointer text-center'}><Link href={`/tasks/0`}>Add New</Link></button>
+                    </div></>) : (<></>)}
+
+                    {currentPath == '/user' ? (<><div className={'flex w-1/4 justify-end h-20 items-center'}>
+                        <button className={'px-2 w-fit rounded-full border bg-blue-400  hover:bg-yellow-600 hover:cursor-pointer text-center'}><Link href={`/user/0`}>Add New</Link></button>
                     </div></>) : (<></>)}
 
                     <div className={'flex w-1/4 justify-end h-20 items-center'}>
