@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { SearchContext } from '@/app/components/navbar';
 import { toast } from 'react-toastify';
+import { TaskStatus } from '../enum/taskEnums';
 
 const Tasks = () => {
     const isAdmin = sessionStorage.getItem('isadmin');
@@ -114,7 +115,7 @@ const Tasks = () => {
                                 <td className={'px-6 py-4 whitespace-no-wrap'}>{t.Description.substring(0, 10)}...</td>
                                 <td className={'px-6 py-4 whitespace-no-wrap'}>{t.CreationDate}</td>
                                 <td className={'px-6 py-4 whitespace-no-wrap'}>{t.ModifiedDate}</td>
-                                {isAdmin == 'true' ? <></> : <td className={'px-6 py-4 whitespace-no-wrap'}>{t.TaskStatus}</td>}
+                                {isAdmin == 'true' ? <></> : <td className={'px-6 py-4 whitespace-no-wrap'}>{TaskStatus[t.TaskStatus as keyof typeof TaskStatus]}</td>}
                                 <td><button className={'px-2 rounded-full border bg-blue-400  hover:bg-yellow-600'}><Link href={`/tasks/${t.TaskId}`}>View</Link></button></td>
                                 <td><input onClick={handleTaskDelete.bind(null, t.TaskId)} type="button" className={'px-2 w-fit rounded-full border bg-blue-400  hover:bg-yellow-600 hover:cursor-pointer text-center'} value='Delete' /></td>
                             </tr>)

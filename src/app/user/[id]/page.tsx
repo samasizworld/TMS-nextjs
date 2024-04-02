@@ -2,11 +2,12 @@
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation';
-import { useQRCode } from 'next-qrcode';
+// import { useQRCode } from 'next-qrcode';
 import { toast } from 'react-toastify';
+import Image from 'next/image';
 
 const UserDetail = ({ params }: { params: { id: string } }) => {
-  const { Canvas } = useQRCode();
+  // const { Image } = useQRCode();
   const isAdmin = sessionStorage.getItem('isadmin');
   const [firstname, setFirstname]: any = useState('')
   const [lastname, setLastname]: any = useState('')
@@ -14,6 +15,7 @@ const UserDetail = ({ params }: { params: { id: string } }) => {
   const [sso, setSSO]: any = useState(false)
   const [mfa, setMFA]: any = useState(false)
   const [email, setEmail]: any = useState('')
+  const [Qr, setQr]: any = useState('')
 
   const router = useRouter();
 
@@ -110,6 +112,7 @@ const UserDetail = ({ params }: { params: { id: string } }) => {
           setMiddlename(data.data.Middlename || '')
           setSSO(data.data.SSO)
           setMFA(data.data.MFA)
+          setQr(data.data.Qr)
         }
         ).catch(error => {
           console.error(error)
@@ -153,19 +156,7 @@ const UserDetail = ({ params }: { params: { id: string } }) => {
 
 
         {mfa == true ? <div className="mb-4">
-          <Canvas
-            text={'https://github.com/bunlong/next-qrcode'}
-            options={{
-              errorCorrectionLevel: 'M',
-              margin: 3,
-              scale: 4,
-              width: 200,
-              color: {
-                dark: '#010599FF',
-                light: '#FFBF60FF',
-              },
-            }}
-          />
+          <Image src={Qr} alt={'QR-Code'} height={200} width={200} />
         </div> : <></>}
 
         <div className="mb-6">

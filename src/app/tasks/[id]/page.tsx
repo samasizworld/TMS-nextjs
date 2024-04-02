@@ -77,7 +77,6 @@ const TaskDetail = ({ params }: { params: { id: string } }) => {
     }
 
     const handleEditor = (desc: any) => {
-        console.log(desc)
         setDescription(desc)
     }
 
@@ -146,11 +145,12 @@ const TaskDetail = ({ params }: { params: { id: string } }) => {
             }
         } else {
             const statusObj = {
-                TaskStatus: taskStatus[0]?.value
+                TaskStatus: taskStatus[0]?.value,
+                Description: description
             }
             console.log(rowId, statusObj)
 
-            axios.patch(`http://localhost:6060/usertasks/${rowId}`, statusObj, { headers: { 'Authorization': `Bearer ${authToken}` } }).
+            axios.patch(`http://localhost:6060/tasks/usertasks/${rowId}`, statusObj, { headers: { 'Authorization': `Bearer ${authToken}` } }).
                 then((response: any) => {
                     console.log(response)
                     toast.success("TaskStatus changed");
