@@ -29,7 +29,7 @@ const Navbar = ({ children }: any) => {
 
     return (
         <SearchContext.Provider value={search}>
-            <nav className={'w-full bg-blue-500 flex justify-between items-center text-white h-[10vh]'}>
+            <nav className={'sticky top-0 w-full bg-blue-500 flex justify-between items-center text-white h-[10vh]'}>
                 <div className={'m-10 font-bold cursor-pointer hover:text-yellow-500'}>{'<TMS>'}</div>
 
                 {currentPath != '/login' ? (<>
